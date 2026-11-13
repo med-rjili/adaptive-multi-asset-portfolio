@@ -58,7 +58,7 @@ Let $r_t\in\mathbb{R}^n$ be the vector of simple daily asset returns, $w_t\geq 0
 \min_{w\in\Delta_n,\eta}\left\lbrace \eta+\frac{1}{(1-\alpha)T}\sum_{j=1}^T\max(-w^\top r_j-\eta,0)\right\rbrace .
 ```
 
-Implementation uses an equivalent numerical sample-quantile objective within SLSQP; it is a research baseline, not a certified global linear-programming solution. For production, use the Rockafellar–Uryasev LP formulation with a suitable convex solver.
+Implementation uses the Rockafellar–Uryasev **linear programming formulation** with nonnegative slack variables, solved using SciPy HiGHS.
 
 **7. Regime-aware allocation.** Fit a two-component Gaussian mixture model to historical 21-day realized volatility of the equal-weight asset-return proxy. Order components by mean volatility; let $p_t$ be the posterior probability of the high-volatility component. Blend minimum-variance and positive six-month momentum allocations:
 
@@ -86,7 +86,7 @@ with $\widetilde\mu=0.25\widehat\mu+0.75\overline\mu\mathbf1$. The norm penalty 
 
 **Execution caveat:** The closing-price fill assumption is idealized and not a realistic live execution guarantee. A production system should generate signals before the close or execute at next open with corresponding open prices and slippage. The default fee is per dollar traded; total absolute turnover counts buys and sells and should not be confused with half-turnover.
 
-## Outputs
+## Automated real-data figures on GitHub\n\nThe GitHub Actions workflow [Real-data research and figures](.github/workflows/research.yml) runs the unit tests, downloads a public **third-party mirror** of historical ETF dividend-adjusted closes, and then generates the backtest figures and CSV metrics. The workflow publishes generated figures and reports (but **not** the underlying price data) when it completes successfully. You can also start it manually from **Actions → Real-data research and figures → Run workflow**.\n\nThe mirror is described at [manisahni/marketdata](https://github.com/manisahni/marketdata) and is *not an exchange-verified feed*. The pipeline stores the original CSV SHA-256 and observation dates in `reports/data_provenance.json`. Stooq is still available through `python scripts/download_data.py`. Historical metrics are contingent on the availability and quality of the upstream provider. Do not treat vendor-adjusted close returns as executable fill prices.\n\n## Outputs
 
 After running the research pipeline with real prices:
 
