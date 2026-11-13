@@ -1,0 +1,43 @@
+name: Real-data research and figures
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'figures/**'
+      - 'reports/**'
+permissions:
+  contents: write
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -e . pytest
+      - run: pytest -q
+      - name: Download real ETF adjusted closes (third-party mirror)
+        run: python scripts/download_verified_snapshot.py
+      - name: Run walk-forward backtest and generate figures
+        run: python scripts/run_research.py --prices data/prices_stooq.csv --fee-bps 5 --window 504 --rebalance 21
+      - name: Publish dated research outputs (not raw licensed prices)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add figures/*.png reports/*.csv reports/data_provenance.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Generate reproducible real-market research figures [skip ci]"
+            git push
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: research-outputs
+          path: |
+            figures/
+            reports/
+          if-no-files-found: ignore
