@@ -1,0 +1,3 @@
+# Market data provenance
+
+The project uses **real historical ETF daily closing prices**, downloaded on demand from Stooq (`https://stooq.com/q/d/l/?s=spy.us&i=d`). Data files are intentionally excluded from version control. The repository **does not ship or fabricate historical prices**. Data coverage and licensing are subject to the provider. Verify corporate action adjustment methodology and distributions against the ETF issuer before claiming a total-return backtest. The eight ETFs are USD-listed and the analysis is in USD. The download script fails loudly if the provider is unavailable; it does not silently substitute simulated observations.
