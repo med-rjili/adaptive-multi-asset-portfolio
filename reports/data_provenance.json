@@ -2,7 +2,7 @@
   "source_url": "https://raw.githubusercontent.com/manisahni/marketdata/main/daily_adjclose.csv",
   "source_type": "third-party public mirror of yfinance adjusted closes",
   "sha256_original_csv": "361efb287116fc8200582c15fcd315bcce2e218fa1e50b416bacc5acebff37b9",
-  "downloaded_utc": "2026-11-13T11:43:52.513827+00:00",
+  "downloaded_utc": "2026-11-13T11:45:26.454482+00:00",
   "first_common_date": "2006-02-06",
   "last_common_date": "2026-08-10",
   "observations": 5159,
