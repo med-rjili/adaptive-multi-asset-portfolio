@@ -1,6 +1,6 @@
 """Eight long-only, fully invested allocation rules; no future returns used."""
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, linprog
 from .risk import covariance, risk_contributions
 from .regimes import regime_probability
 
@@ -41,12 +41,17 @@ def allocate(name, history, rf=0.02):
         score = np.expm1(logret[-252:-21].sum(axis=0))
         return simplex(np.maximum(score,0))
     if name == "cvar":
-        losses = -x
-        def objective(w):
-            l=losses@w
-            q=np.quantile(l,.95)
-            return q+np.maximum(l-q,0).mean()/.05
-        return _solve(objective,n)
+        # Rockafellar-Uryasev convex linear program: [w, eta, u_1..u_T].
+        t = len(x)
+        objective = np.r_[np.zeros(n), 1.0, np.full(t, 1.0 / (.05 * t))]
+        # u_j >= -r_j @ w - eta  <=>  -r_j @ w - eta - u_j <= 0.
+        A = np.hstack([-x, -np.ones((t, 1)), -np.eye(t)])
+        b = np.zeros(t)
+        equality = np.r_[np.ones(n), 0.0, np.zeros(t)][None, :]
+        result = linprog(objective, A_ub=A, b_ub=b, A_eq=equality,
+                         b_eq=[1.0], bounds=[(0, 1)] * n + [(None, None)] +
+                         [(0, None)] * t, method="highs")
+        return simplex(result.x[:n]) if result.success else eq
     if name == "regime_aware":
         riskoff = regime_probability(x.mean(axis=1))
         low = _solve(lambda w: w@cov@w,n)
