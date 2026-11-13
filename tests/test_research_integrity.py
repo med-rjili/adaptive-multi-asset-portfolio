@@ -23,3 +23,11 @@ def test_rebalancing_and_turnover_have_matching_dates():
     assert len(weights) == 9
     assert (turnover["turnover"] >= 0).all()
     assert (weights.sum(axis=1) - 1).abs().max() < 1e-10
+
+def test_summary_metrics_include_first_realized_return():
+    from adaptive_portfolio.metrics import summary
+    eq = pd.DataFrame({"constant": [1.01, 1.01 * 1.02, 1.01 * 1.02 * 0.99]})
+    result = summary(eq)
+    expected = eq.iloc[-1, 0] ** (252 / 3) - 1
+    assert np.isclose(result.loc["constant", "CAGR"], expected)
+    assert np.isfinite(result.loc["constant", "volatility"])
