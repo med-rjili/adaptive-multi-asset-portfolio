@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 
 def summary(equity, rf=0.02):
-    # Equity starts AFTER the first realized backtest return; reconstruct the\n    # initial wealth=1 observation to include that return in every metric.\n    r=equity.pct_change().fillna(equity.iloc[0]-1)
+    # Equity starts AFTER the first realized backtest return; reconstruct the
+    # initial wealth=1 observation to include that return in every metric.
+    r=equity.pct_change().fillna(equity.iloc[0]-1)
     years=len(r)/252
     result=[]
     for name in equity:
