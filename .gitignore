@@ -1,6 +1,0 @@
-__pycache__/
-.pytest_cache/
-*.pyc
-.venv/
-data/*.csv
-!data/README.md
