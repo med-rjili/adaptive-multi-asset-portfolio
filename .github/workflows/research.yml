@@ -6,6 +6,9 @@ on:
     paths-ignore:
       - 'figures/**'
       - 'reports/**'
+concurrency:
+  group: portfolio-research-main
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
@@ -28,10 +31,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add figures/*.png reports/*.csv reports/data_provenance.json
+          git add -f figures/*.png reports/*.csv reports/data_provenance.json
           if ! git diff --cached --quiet; then
             git commit -m "Generate reproducible real-market research figures [skip ci]"
-            git push
+            git pull --rebase origin main
+            git push origin HEAD:main
           fi
       - uses: actions/upload-artifact@v4
         if: always()
