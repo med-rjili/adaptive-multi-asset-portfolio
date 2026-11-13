@@ -54,25 +54,25 @@ Let $r_t\in\mathbb{R}^n$ be the vector of simple daily asset returns, $w_t\geq 0
 
 **6. CVaR.** Historical expected shortfall at $\alpha=0.95$:
 
-$$
-\min_{w\in\Delta_n,\eta}\left\{\eta+\frac{1}{(1-\alpha)T}\sum_{j=1}^T\max(-w^\top r_j-\eta,0)\right\}.
-$$
+```math
+\min_{w\in\Delta_n,\eta}\left\lbrace \eta+\frac{1}{(1-\alpha)T}\sum_{j=1}^T\max(-w^\top r_j-\eta,0)\right\rbrace .
+```
 
 Implementation uses an equivalent numerical sample-quantile objective within SLSQP; it is a research baseline, not a certified global linear-programming solution. For production, use the Rockafellar–Uryasev LP formulation with a suitable convex solver.
 
 **7. Regime-aware allocation.** Fit a two-component Gaussian mixture model to historical 21-day realized volatility of the equal-weight asset-return proxy. Order components by mean volatility; let $p_t$ be the posterior probability of the high-volatility component. Blend minimum-variance and positive six-month momentum allocations:
 
-$$
+```math
 w_t=p_t w_t^{\mathrm{minvar}}+(1-p_t)w_t^{\mathrm{trend}}.
-$$
+```
 
 **Important:** This is a *Gaussian mixture regime classifier*, **not an HMM**. It does not model Markov transition probabilities. All fitting occurs on the trailing historical window.
 
 **8. Robust mean–variance.** Optimize a mean-shrunk, volatility-uncertainty-penalized objective:
 
-$$
+```math
 \min_{w\in\Delta_n}-\widetilde\mu^\top w+\frac{3}{2}w^\top\widehat\Sigma w+0.15\|\mathrm{diag}(\widehat\Sigma)^{1/2}w\|_2,
-$$
+```
 
 with $\widetilde\mu=0.25\widehat\mu+0.75\overline\mu\mathbf1$. The norm penalty can be interpreted as a simple ellipsoidal expected-return uncertainty set; the coefficients are *fixed ex ante*, not tuned on the test period.
 
