@@ -40,42 +40,48 @@ The downloader requires internet access. If Stooq throttles requests or changes 
 
 ## Strategies and mathematics
 
-Let \(r_t\in\mathbb{R}^n\) be the vector of simple daily asset returns, \(w_t\geq 0\) and \(\mathbf 1^\top w_t=1\). All weights are estimated from the trailing \(L=504\) returns, using the covariance estimator \(\widehat\Sigma_t=252\,\widehat\Sigma_{\mathrm{LW}}\) (Ledoit–Wolf shrinkage), and recomputed every 21 sessions.
+Let $r_t\in\mathbb{R}^n$ be the vector of simple daily asset returns, $w_t\geq 0$ and $\mathbf 1^\top w_t=1$. All weights are estimated from the trailing $L=504$ returns, using the covariance estimator $\widehat\Sigma_t=252\,\widehat\Sigma_{\mathrm{LW}}$ (Ledoit–Wolf shrinkage), and recomputed every 21 sessions.
 
-**1. Equal weight.** \(w_i=1/n\). Serves as a transparent benchmark.
+**1. Equal weight.** $w_i=1/n$. Serves as a transparent benchmark.
 
-**2. Risk parity.** Minimize \(\sum_i(RC_i-\overline{RC})^2\) where \(RC_i=w_i(\Sigma w)_i/\sqrt{w^\top\Sigma w}\). Note that the optimizer uses absolute risk-contribution differences, not an exact closed-form parity solution.
+**2. Risk parity.** Minimize $\sum_i(RC_i-\overline{RC})^2$ where $RC_i=w_i(\Sigma w)_i/\sqrt{w^\top\Sigma w}$. Note that the optimizer uses absolute risk-contribution differences, not an exact closed-form parity solution.
 
-**3. Minimum variance.** \(\min_{w\in\Delta_n} w^\top\widehat\Sigma w\), where \(\Delta_n=\{w\geq0,\mathbf1^\top w=1\}\).
+**3. Minimum variance.** $\min_{w\in\Delta_n} w^\top\widehat\Sigma w$, where $\Delta_n=\{w\geq0,\mathbf1^\top w=1\}$.
 
-**4. Maximum Sharpe.** \(\max_{w\in\Delta_n}\frac{w^\top(\widetilde\mu-r_f\mathbf1)}{\sqrt{w^\top\widehat\Sigma w}}\). To temper noisy means, \(\widetilde\mu=0.5\widehat\mu+0.5\overline\mu\mathbf1\), with \(\widehat\mu=252\overline r\) and default \(r_f=2\%\). The risk-free rate is a modeling assumption, not a fetched daily series.
+**4. Maximum Sharpe.** $\max_{w\in\Delta_n}\frac{w^\top(\widetilde\mu-r_f\mathbf1)}{\sqrt{w^\top\widehat\Sigma w}}$. To temper noisy means, $\widetilde\mu=0.5\widehat\mu+0.5\overline\mu\mathbf1$, with $\widehat\mu=252\overline r$ and default $r_f=2\%$. The risk-free rate is a modeling assumption, not a fetched daily series.
 
-**5. Momentum.** Cross-sectional positive 12–1 month momentum: \(s_i=\prod_{j=t-251}^{t-21}(1+r_{j,i})-1\); weights are proportional to \(\max(s_i,0)\). If all scores are non-positive, fall back to equal weight. This avoids using the most recent month for the momentum signal.
+**5. Momentum.** Cross-sectional positive 12–1 month momentum: $s_i=\prod_{j=t-251}^{t-21}(1+r_{j,i})-1$; weights are proportional to $\max(s_i,0)$. If all scores are non-positive, fall back to equal weight. This avoids using the most recent month for the momentum signal.
 
-**6. CVaR.** Historical expected shortfall at \(\alpha=0.95\):
+**6. CVaR.** Historical expected shortfall at $\alpha=0.95$:
 
-\[\min_{w\in\Delta_n,\eta}\left\{\eta+\frac{1}{(1-\alpha)T}\sum_{j=1}^T\max(-w^\top r_j-\eta,0)\right\}.\]
+$$
+\min_{w\in\Delta_n,\eta}\left\{\eta+\frac{1}{(1-\alpha)T}\sum_{j=1}^T\max(-w^\top r_j-\eta,0)\right\}.
+$$
 
 Implementation uses an equivalent numerical sample-quantile objective within SLSQP; it is a research baseline, not a certified global linear-programming solution. For production, use the Rockafellar–Uryasev LP formulation with a suitable convex solver.
 
-**7. Regime-aware allocation.** Fit a two-component Gaussian mixture model to historical 21-day realized volatility of the equal-weight asset-return proxy. Order components by mean volatility; let \(p_t\) be the posterior probability of the high-volatility component. Blend minimum-variance and positive six-month momentum allocations:
+**7. Regime-aware allocation.** Fit a two-component Gaussian mixture model to historical 21-day realized volatility of the equal-weight asset-return proxy. Order components by mean volatility; let $p_t$ be the posterior probability of the high-volatility component. Blend minimum-variance and positive six-month momentum allocations:
 
-\[w_t=p_t w_t^{\mathrm{minvar}}+(1-p_t)w_t^{\mathrm{trend}}.\]
+$$
+w_t=p_t w_t^{\mathrm{minvar}}+(1-p_t)w_t^{\mathrm{trend}}.
+$$
 
 **Important:** This is a *Gaussian mixture regime classifier*, **not an HMM**. It does not model Markov transition probabilities. All fitting occurs on the trailing historical window.
 
 **8. Robust mean–variance.** Optimize a mean-shrunk, volatility-uncertainty-penalized objective:
 
-\[\min_{w\in\Delta_n}-\widetilde\mu^\top w+\frac{3}{2}w^\top\widehat\Sigma w+0.15\|\mathrm{diag}(\widehat\Sigma)^{1/2}w\|_2,\]
+$$
+\min_{w\in\Delta_n}-\widetilde\mu^\top w+\frac{3}{2}w^\top\widehat\Sigma w+0.15\|\mathrm{diag}(\widehat\Sigma)^{1/2}w\|_2,
+$$
 
-with \(\widetilde\mu=0.25\widehat\mu+0.75\overline\mu\mathbf1\). The norm penalty can be interpreted as a simple ellipsoidal expected-return uncertainty set; the coefficients are *fixed ex ante*, not tuned on the test period.
+with $\widetilde\mu=0.25\widehat\mu+0.75\overline\mu\mathbf1$. The norm penalty can be interpreted as a simple ellipsoidal expected-return uncertainty set; the coefficients are *fixed ex ante*, not tuned on the test period.
 
 ## Walk-forward methodology
 
 1. Calculate simple close-to-close returns without forward filling.
-2. At decision close \(t\), estimate weights using only returns up to and including \(t\).
-3. On rebalance dates, assume execution at close \(t\); deduct \(c\sum_i|w_{i,t}^{\mathrm{target}}-w_{i,t}^{\mathrm{pretrade}}|\), with \(c=5\) basis points by default.
-4. Earn the subsequent close-to-close portfolio return \(w_t^\top r_{t+1}\).
+2. At decision close $t$, estimate weights using only returns up to and including $t$.
+3. On rebalance dates, assume execution at close $t$; deduct $c\sum_i|w_{i,t}^{\mathrm{target}}-w_{i,t}^{\mathrm{pretrade}}|$, with $c=5$ basis points by default.
+4. Earn the subsequent close-to-close portfolio return $w_t^\top r_{t+1}$.
 5. Drift holdings after each return, and repeat the procedure. Compare cumulative wealth, CAGR, Sharpe, Sortino, Calmar, drawdowns, volatility, turnover and allocations.
 
 **Execution caveat:** The closing-price fill assumption is idealized and not a realistic live execution guarantee. A production system should generate signals before the close or execute at next open with corresponding open prices and slippage. The default fee is per dollar traded; total absolute turnover counts buys and sells and should not be confused with half-turnover.
